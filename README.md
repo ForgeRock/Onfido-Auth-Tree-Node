@@ -15,7 +15,7 @@
 -->
 # **Onfido Registration Node**
 
-A simple authentication node for ForgeRock's Access Manager 6.1 and above.
+A simple authentication node for ForgeRock's Access Manager 7.0 and above.
 
 
 ## **Whats an Onfido?**
@@ -24,7 +24,7 @@ Onfido is the new identity standard for the internet. Our AI-based technology as
 
 ## **What's in the package**
 
-Once built and dropped into ForgeRock 2 nodes will be available.
+Once built and dropped into ForgeRock, 2 nodes will be available.
 1) Onfido Registration Node
 2) Onfido Webhook node
 
@@ -40,90 +40,126 @@ Once built and dropped into ForgeRock 2 nodes will be available.
 
 3) Restart the AM for the new plug-in to become available.
 
-**Onfido Registration Node**: Collects and sends the document and biometric to the Onfido Back end. This node
- also uses Onfido's Autofill endpoint to get the User Attributes off the document for possible provisioning later.
+**Onfido Registration Node**
 
-**Onfido Webhook Node**: Retrieves the Identity Verification Report from Onfido and update the users profile
- accordingly.
+Collects and sends the document and, optionally, biometrics to the Onfido Back end.
+This node also uses Onfido's Autofill endpoint to get the User Attributes off the
+document for possible provisioning later.
 
+**Onfido Webhook Node**
+
+Retrieves the Identity Verification Report from Onfido and update the users profile
+accordingly.
 
 ## **User Journeys**
  
- The Onfido/ForgeRock integration user journey supports both Registration as a Service and higher level of assurance
- use cases. For Registration as a service end users do not yet have an identity provisioned in the ForgeRock platform.
+ The Onfido/ForgeRock integration user journey supports both Registration as a Service
+ and higher level of assurance use cases. For Registration as a Service, end users do not
+ yet have an identity provisioned in the ForgeRock platform.
 
  ## **Use Case: Registration as a Service**
 
+![ScreenShot](./screenshots/flow_idm_registration.png)
 
+The Tree should be configured as above. The basic flow is as follows.
 
-![ScreenShot](./screenshots/RaaS.png)
+1. The Page Node, with its sub-nodes, gathers any required attributes needed to create a
+   new identity such as e-mail, username, and password.
+   
+2. The Onfido Registration Node initiates the JavaScript SDK on the Access Manage Login page.
+   The Onfido Web SDK takes over, guiding the user through the Onfido Identity Verification
+   Flow. (See screenshots at bottom for this flow.)
+   
+3. After running through the Onfido Registration Node, the Create Object will create a resource
+   with the information gathered by the previous nodes. And, the user will be automatically
+   logged in once this flow succeeds.
 
-The Tree should be configured as above. The Username Collector is there to allow the user to pick a username for
-subsequent logins to ForgeRock Access Manager. The Onfido Registration Node will then initiate the JavaScript SDK on
-the Access Manager Login page. Onfido SDK will take over and take the user through the Onfido Identity Verification
-Flow (see screenshots at bottom for flow). Next the Create Password Node will ask the user to select a password for
- their subsequent logins and the Provision Dynamic Account Node will take the information from the previous three nodes
-  and create an identity in the ForgeRock Platform. User will be auto-logged in at the end of this flow.
+**Note:** The Onfido Registration Node will overwrite specified in the Attribute Map with the
+values read from the document the end user uploads.
 
 ## **Use Case: Known User, Higher Level of Assurance**
 
-![ScreenShot](./screenshots/assuranceUpgrade.png)
+![ScreenShot](./screenshots/flow_idm_stepup.png)
 
-The Tree should be configured as above. This tree/user journey is built for an already logged in user to be redirected through and trigger Onfido Identity Verification. This is for when a user already has an identity within the ForgeRock Platform, but higher level of assurance is needed on the account. For example a user who has signed up for a digital identity for a bank to review and track offers but has now decided to sign up for for a checking or savings account. In this case the user is already known but no assurance can be attached to the account. Pushing the logged in user through the Tree above will start the process to attach a higher level of assurance to the digital account.
+The Tree should be configured as above.
 
+This tree/user journey is built for a user who is already logged in and needs to be redirected
+through the Onfido Identity Verification. This is used when a user already has an identity in
+the ForgeRock Platform, but a higher level of assurance is needed on the account. For example,
+a user who has signed up for a digital identity for a bank to review and track offers, but has
+now decided to sign up for a checking or savings account. In this case, the user is already
+known, but no assurance can be attached to the account. Pushing the logged in user through the
+tree above will start the process of attaching a higher level of assurance to the account.
 
 ## **Configuration: Onfido Registration Node** 
 
-![ScreenShot](./screenshots/configuration1.png)
+![ScreenShot](./screenshots/config_registration.png)
 
 | Configuration Name        | Explanation           |
 | ------------- |:-------------|
-| Live Token     | The Onfido Registration Node needs A Live Token Provided by Onfido. To get this Token please go to the Onfido Dashboard at https://onfido.com/dashboard/ and navigate to the Token tab. |
-| Just in Time Provisioning     | JIT provisioning should be turned on in the case of RaaS UseCase and Off in the Level of Assurance UseCase. This is used to initiate the creation of the Shared Object used by the Dynamic Provisioning node and is only needed in Registration as a service usecases.      |
-| BioMetric Check | This is used to tell the SDK if it should initiate a Document only check; Document and Selfie Check; Document and Liveness Check      |
-| Attribute Mapping Configuration| Used to map the attributes that come from the Onfido AutoFill endpoint to LDAP attributes inside the ForgeRock platform|
-|Onfido ApplicantID Attribute| Attribute used to store Onfido ApplicantID for matching up the Identity Verification Report when it comes in
+| Live Token    | The Onfido Registration Node needs a Live Token Provided by Onfido. To get this Token please go to the Onfido Dashboard at https://onfido.com/dashboard/ and navigate to the Token tab. |
+| Just in Time Provisioning     | JIT Provisioning should be turned On for the RaaS Use Case. It should be turned Off for the Level of Assurance Use Case. It is used to initiate the creation of the Shared Object used by the Create Object Node, thus is only needed in Registration as a Service use cases.      |
+| BioMetric Check | This is used to tell the Web SDK which type of check it should initiate: document-only, document-and-face, or document-and-video.      |
+| Attribute Mapping Configuration| This is used to map the attributes that come from the Onfido AutoFill endpoint to object attributes inside the ForgeRock platform. The key is the ForgeRock IDM attribute, while the value is the Onfido attribute.|
+|Onfido ApplicantID Attribute| The IDM attribute used to store Onfido Applicant ID for matching up the Identity Verification Report when it comes in.
 |Messages| Messages on the Onfido user flow that can be customized|
 
 ## **Onfido Webhook Tree**
 
-![ScreenShot](./screenshots/webhookTree.png)
+![ScreenShot](./screenshots/flow_webhook.png)
 
-The Onfido Webhook Node/Tree as seen above is used to receive the report from Onfido as well as find and update the
-user inside of ForgeRock that corresponds to the Report. If you are familiar with ForgeRock, normally Trees are
-  used to log users in and provide SSOTokens but when called with specific Query Params you send information through a tree without returning an SSO Token. This is a very important note and the configuration steps below must be followed to make sure that an SSO Token is not created.
+The Onfido Webhook Node/Tree is used to receive the report from Onfido.
+
+The tree also finds and updates the user inside of ForgeRock that corresponds to the Report. If you are
+familiar with ForgeRock, normally  Trees are used to log users in and provide SSOTokens. But, when called
+with specific Query Params, you can send information through a tree without returning an SSO Token. This
+is very important, and  the configuration steps below must be followed to make sure that an SSO Token is
+not created for this flow.
 
 ### Node Configuration
 
-![ScreenShot](./screenshots/configuration2.png)
+![ScreenShot](./screenshots/config_webhook.png)
 
 | Configuration Name        | Explanation           |
 | ------------- |:-------------|
 | Live Token     | The Onfido Registration Node needs A Live Token Provided by Onfido. To get this Token please go to the Onfido Dashboard at https://onfido.com/dashboard/ and navigate to the Token tab. |
 | Onfido Webhook Token    | Used to check the HMAC signature of the calls coming in from Onfido     |
-| Lockout User | If a user fails verification should the user be locked out. If LockOut is turned on then not only is the user account deactivated but all current sessions by that user will be immediately deactivated as well      |
+| Lockout User | If a user fails verification, should the user be locked out? If LockOut is turned On, then not only is the user account deactivated, but all current sessions by that user will be deactivated immediately as well.      |
 |Onfido Pass/Fail Flag Attribute| Used to store if  Identity Verification was passed or failed.|
-|Onfido ApplicantID Attribute| Attribute used to store Onfido ApplicantID for matching up the Identity Verification Report when it comes in
+|Onfido ApplicantID Attribute| LDAP Attribute used to store Onfido ApplicantID for matching up the Identity Verification Report when it comes in.
 |Onfido Breakdowns| Allows you to customize which of the Onfido Report Breakdowns are evaluated|
+
+**Note:**
+
+There is a small disparity between the Onfido Registration Node and the Onfido Webhook Node.
+
+* The Onfido Applicant ID Attribute in the Registration Node is an IDM Attribute
+* The Onfido Applicant ID Attribute in the Webhook Node is the related LDAP Attribute
  
-### Onfido Dash configuration
+### Onfido Dashboard configuration
 
 ![ScreenShot](./screenshots/onfidoDash1.png)
 
-In the Onfido Dashboard go to Developers then webhooks to configure a new webhook. The Token which is covered by the red block in the above screen shot is the webhook token needed by the webhook node. To generate one click on the button that says **Create Webhook** a pop up will come up.
+In the Onfido Dashboard:
+
+Go to Developers, then Webhooks to configure a new webhook. The token, which is
+covered by a red block above, is the webhook token needed by the webhook node. To generate one, click on
+the button that says **Create Webhook.** A screen like the one below will pop up.
 
 ![ScreenShot](./screenshots/onfidoDash2.png)
 
-Fill out the URL like below using your own url making sure to have **noSession=true** in the url to ensure that an SSOToken is not created.
+Fill out the URL like below, using your own url and making sure to have **noSession=true** in the url. This
+will ensure that an SSOToken is not created.
 
 **https://{{openam_hostname}}/openam/json/realms/root/authenticate?authIndexType=service&authIndexValue={webhookTreeName}&noSession=true**
 
-Also make sure to uncheck everything except for the Check Completed this is the only notification the webhook tree/node needs.
+Also make sure to uncheck everything except for the Check Completed option. This is the only notification
+the webhook tree/node needs.
 
 
-After clicking save you will be returned to the screen from the first screen shot in the section and you will be able to take the webhook token to configure the webhook node.
+After clicking save you will be returned to the screen from the first screen shot in this section, and you
+will be able to use the generated webhook token to configure the webhook node.
 
-Finally, login to the Access Management Console and navigate to `Configure` -> `Global Services` -> `REST APIs` and
- disable CSRF Protection ![ScreenShot](./screenshots/csrf.png)
- 
+Finally, login to the Access Management Console and navigate to `Configure` -> `Global Services` -> `REST APIs`
+and disable CSRF Protection ![ScreenShot](./screenshots/csrf.png)
  

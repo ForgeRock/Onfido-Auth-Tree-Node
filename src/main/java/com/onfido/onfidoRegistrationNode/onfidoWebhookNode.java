@@ -17,11 +17,24 @@
 
 package com.onfido.onfidoRegistrationNode;
 
-import static com.onfido.onfidoRegistrationNode.onfidoConstants.FAIL_FLAG;
-import static com.onfido.onfidoRegistrationNode.onfidoConstants.HMAC_SHA1_ALGORITHM;
-import static com.onfido.onfidoRegistrationNode.onfidoConstants.PASS_FLAG;
-import static org.forgerock.openam.auth.node.api.SharedStateConstants.REALM;
-
+import com.google.inject.assistedinject.Assisted;
+import com.iplanet.sso.SSOException;
+import com.iplanet.sso.SSOToken;
+import com.iplanet.sso.SSOTokenManager;
+import com.onfido.exceptions.OnfidoException;
+import com.onfido.models.Report;
+import com.onfido.webhooks.WebhookEvent;
+import com.onfido.webhooks.WebhookEventVerifier;
+import com.sun.identity.idm.AMIdentity;
+import com.sun.identity.idm.IdRepoException;
+import com.sun.identity.idm.IdUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.forgerock.am.cts.CTSPersistentStore;
+import org.forgerock.am.cts.api.filter.TokenFilter;
+import org.forgerock.am.cts.api.filter.TokenFilterBuilder;
+import org.forgerock.am.cts.api.query.PartialToken;
+import org.forgerock.am.cts.api.tokens.CoreTokenField;
+import org.forgerock.am.cts.exceptions.CoreTokenException;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.Action;
 import org.forgerock.openam.auth.node.api.Node;
@@ -29,48 +42,30 @@ import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.forgerock.openam.auth.node.api.SharedStateConstants;
 import org.forgerock.openam.auth.node.api.SingleOutcomeNode;
 import org.forgerock.openam.auth.node.api.TreeContext;
-import org.forgerock.openam.cts.CTSPersistentStore;
-import org.forgerock.openam.cts.api.filter.TokenFilter;
-import org.forgerock.openam.cts.api.filter.TokenFilterBuilder;
-import org.forgerock.openam.cts.exceptions.CoreTokenException;
 import org.forgerock.openam.sm.annotations.adapters.Password;
-import org.forgerock.openam.sm.datalayer.api.query.PartialToken;
-import org.forgerock.openam.tokens.CoreTokenField;
 import org.forgerock.openam.utils.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.inject.assistedinject.Assisted;
-import com.iplanet.sso.SSOException;
-import com.iplanet.sso.SSOToken;
-import com.iplanet.sso.SSOTokenManager;
-import com.sun.identity.idm.AMIdentity;
-import com.sun.identity.idm.IdRepoException;
-import com.sun.identity.idm.IdUtils;
-
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Collection;
-import java.util.Formatter;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
+import static com.onfido.onfidoRegistrationNode.onfidoConstants.FAIL_FLAG;
+import static com.onfido.onfidoRegistrationNode.onfidoConstants.PASS_FLAG;
 
+@Slf4j(topic = "amAuth")
 @Node.Metadata(outcomeProvider = SingleOutcomeNode.OutcomeProvider.class, configClass = onfidoWebhookNode.Config.class)
 public class onfidoWebhookNode extends SingleOutcomeNode {
 
-    private final Logger logger = LoggerFactory.getLogger("amAuth");
     private final Config config;
     private final CTSPersistentStore ctsPersistentStore;
+    private final OnfidoAPI onfidoApi;
+    private final onfidoHelper onfidoHelper;
 
 
     /**
@@ -86,8 +81,15 @@ public class onfidoWebhookNode extends SingleOutcomeNode {
         @Password
         char[] webhookToken();
 
+        @Attribute(order = 270)
+        default String onfidoApiBaseUrl() {
+            return "https://api.onfido.com/v3/";
+        }
+
         @Attribute(order = 300)
-        default boolean lockUser() {return false;}
+        default boolean lockUser() {
+            return false;
+        }
 
         @Attribute(order = 400)
         default String userFlagAttribute() {
@@ -95,7 +97,9 @@ public class onfidoWebhookNode extends SingleOutcomeNode {
         }
 
         @Attribute(order = 450)
-        default String onfidoApplicantIdAttribute() {return "title";}
+        default String onfidoApplicantIdAttribute() {
+            return "title";
+        }
 
         //needs to be SET of strings
         @Attribute(order = 500)
@@ -119,130 +123,134 @@ public class onfidoWebhookNode extends SingleOutcomeNode {
      * @param config The service config.
      */
     @Inject
-    public onfidoWebhookNode(@Assisted Config config, CTSPersistentStore ctsPersistentStore) {
+    public onfidoWebhookNode(@Assisted Config config, CTSPersistentStore ctsPersistentStore) throws NodeProcessException {
+        log.debug("onfidoWebhookNode config: {}", config);
+
         this.config = config;
         this.ctsPersistentStore = ctsPersistentStore;
-    }
-
-    private static String toHexString(byte[] bytes) {
-        Formatter formatter = new Formatter();
-        for (byte b : bytes) {
-            formatter.format("%02x", b);
-        }
-        return formatter.toString();
+        this.onfidoApi = new OnfidoAPI(config);
+        this.onfidoHelper = new onfidoHelper();
     }
 
     @Override
     public Action process(TreeContext context) throws NodeProcessException {
         final HttpServletRequest request = context.request.servletRequest;
-        String checksHREF;
-        String checkId;
-        JSONObject jsonBody;
+
+        log.debug("inside onfidoWebhookNode process");
+
         context.sharedState.put(SharedStateConstants.USERNAME, "anonymous");
-        try {
-            jsonBody = new JSONObject(request.getParameter("jsonContent"));
-            checksHREF = jsonBody.getJSONObject("payload").getJSONObject("object").getString("href");
-            checkId = jsonBody.getJSONObject("payload").getJSONObject("object").getString("id");
-            logger.debug(checkId);
-        } catch (JSONException e) {
-            throw new NodeProcessException(e);
-        }
 
-        //Unformating of JsonContent
-        if (isSigned(request.getParameter("jsonContent").replaceAll("\\s+(?![1-9a-zA-Z])", ""),
-                     request.getHeader("X-Signature"))) {
-            onfidoHelper onfidoHelper = new onfidoHelper();
-            //get applicant id then get HREF from checks complete to pass to this call
-            String applicantId = onfidoHelper.getApplicantId(checksHREF);
+        WebhookEvent webhookEvent = verifyWebhookEvent(request);
+        String checksHref = webhookEvent.getObject().getHref();
+        String checkId = webhookEvent.getObject().getId();
 
-            JSONArray reports = new JSONArray();
-            JSONArray reportIds = onfidoHelper.getReportsId(checksHREF, new String(config.onfidoToken()));
-            for (int n = 0; n < reportIds.length(); n++) {
-                try {
-                    reports.put(onfidoHelper.getReportData(checkId, reportIds.getString(n), new String(config.onfidoToken())));
-                } catch (JSONException e) {
-                    throw new NodeProcessException(e);
-                }
-            }
-            AMIdentity userIdentity;
-            Set<String> userSearchAttributes = new HashSet<>();
-            userSearchAttributes.add(config.onfidoApplicantIdAttribute());
-            userIdentity = IdUtils.getIdentity(applicantId, context.sharedState.get(REALM).asString(),
-                                               userSearchAttributes);
-            logger.debug(userIdentity.getName());
+        AMIdentity userIdentity =
+                Optional.ofNullable(
+                        findUser(
+                                context.sharedState.get(SharedStateConstants.REALM).asString(),
+                                onfidoHelper.getApplicantId(checksHref)
+                        ))
+                        .orElseThrow(() -> new NodeProcessException("Could not find user identity"));
 
-            if (onfidoHelper.parseReport(reports, config.breakDowns().toArray(new String[0]))) {
-                flagUser(userIdentity, PASS_FLAG);
-                return goToNext().build();
-            } else {
+        log.debug("Processing user: {}", userIdentity.getUniversalId());
+        log.debug("Fetching results for check: {}", checkId);
 
-                flagUser(userIdentity, FAIL_FLAG);
-                if (config.lockUser()) {
-                    try {
-                        TokenFilter filter = new TokenFilterBuilder()
-                                .returnAttribute(CoreTokenField.STRING_FIVE)
-                                .and().withAttribute(CoreTokenField.USER_ID, userIdentity.getUniversalId())
-                                .build();
-                        Collection<PartialToken> tokens = ctsPersistentStore.attributeQuery(filter);
+        setUserCheckResults(userIdentity, checkId);
 
-                        while (tokens.iterator().hasNext()) {
-                            String tokenString = tokens.iterator().next().getValue(CoreTokenField.STRING_FIVE)
-                                                       .toString();
-                            try {
-                                SSOToken token = SSOTokenManager.getInstance().createSSOToken(tokenString);
-                                SSOTokenManager.getInstance().logout(token);
-                            } catch (SSOException e) {
-                                tokens.remove(tokens.iterator().next());
-                            }
-                        }
-                    } catch (CoreTokenException e) {
-                        throw new NodeProcessException(e);
-                    }
-
-                    try {
-                        userIdentity.setActiveStatus(false);
-                    } catch (IdRepoException | SSOException e) {
-                        throw new NodeProcessException(e);
-                    }
-                    logger.debug("Lock User");
-                }
-            }
-            return goToNext().build();
-        } else {
-            throw new NodeProcessException("Hmac Signature Failure Invalid Request");
-        }
+        return goToNext().build();
     }
 
-    private boolean isSigned(String data, String signature) throws NodeProcessException {
-        SecretKeySpec signingKey = new SecretKeySpec(new String(config.webhookToken()).getBytes(), HMAC_SHA1_ALGORITHM);
-        Mac mac;
-        try {
-            mac = Mac.getInstance(HMAC_SHA1_ALGORITHM);
-            mac.init(signingKey);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new NodeProcessException(e);
+    private AMIdentity findUser(String realm, String applicantId) {
+        // The onfidoApplicantIdAttribute is the DS attribute to which the IDM Onfido Applicant ID is linked
+        Set<String> userSearchAttributes = new HashSet<String>() {{ add(config.onfidoApplicantIdAttribute()); }};
+
+        return IdUtils.getIdentity(applicantId, realm, userSearchAttributes);
+    }
+
+    private void setUserCheckResults(AMIdentity userIdentity, String checkId) throws NodeProcessException {
+        List<Report> reports = onfidoApi.listReports(checkId);
+        String[] breakdowns = config.breakDowns().toArray(new String[0]);
+        boolean checkPassed = onfidoHelper.parseReports(reports, breakdowns);
+
+        if (checkPassed) {
+            flagUser(userIdentity, PASS_FLAG);
+        } else {
+            flagUser(userIdentity, FAIL_FLAG);
+
+            if (config.lockUser()) {
+                lockUser(userIdentity);
+            }
         }
-        return StringUtils.isEqualTo(signature, toHexString(mac.doFinal(data.getBytes())));
     }
 
     private void flagUser(AMIdentity userIdentity, String flag) throws NodeProcessException {
-        Map<String, Set> attrMap = new HashMap<>();
+        String userFlagAttribute = config.userFlagAttribute();
 
-        if (config.userFlagAttribute() != null || !config.userFlagAttribute().equals("")) {
-            attrMap.put(config.userFlagAttribute(), new HashSet<String>() {{
-                add(flag);
-            }});
-            try {
-                userIdentity.setAttributes(attrMap);
-                userIdentity.store();
-            } catch (IdRepoException | SSOException e) {
-                throw new NodeProcessException(e);
-            }
-            logger.debug("Flagging User");
-
+        if (StringUtils.isBlank(userFlagAttribute)) {
+            return;
         }
 
+        try {
+            Map<String, Set> attrMap = new HashMap<>();
+            attrMap.put(userFlagAttribute, new HashSet<String>() {{ add(flag); }});
 
+            // Include the (default) required fields
+            attrMap.put("givenName", userIdentity.getAttribute("givenName"));
+            attrMap.put("sn", userIdentity.getAttribute("sn"));
+            attrMap.put("mail", userIdentity.getAttribute("mail"));
+
+            userIdentity.setAttributes(attrMap);
+            userIdentity.store();
+
+            log.debug("User was flagged");
+        } catch (IdRepoException | SSOException e) {
+            throw new NodeProcessException(e);
+        }
     }
 
+    private void lockUser(AMIdentity userIdentity) throws NodeProcessException {
+        try {
+            TokenFilter filter = new TokenFilterBuilder()
+                    .returnAttribute(CoreTokenField.STRING_FIVE)
+                    .and().withAttribute(CoreTokenField.USER_ID, userIdentity.getUniversalId())
+                    .build();
+
+            Collection<PartialToken> tokens = ctsPersistentStore.attributeQuery(filter);
+
+            while (tokens.iterator().hasNext()) {
+                String tokenString = tokens.iterator().next().getValue(CoreTokenField.STRING_FIVE).toString();
+
+                try {
+                    SSOToken token = SSOTokenManager.getInstance().createSSOToken(tokenString);
+                    SSOTokenManager.getInstance().logout(token);
+                } catch (SSOException e) {
+                    tokens.remove(tokens.iterator().next());
+                }
+            }
+        } catch (CoreTokenException e) {
+            throw new NodeProcessException(e);
+        }
+
+        try {
+            userIdentity.setActiveStatus(false);
+        } catch (IdRepoException | SSOException e) {
+            throw new NodeProcessException(e);
+        }
+
+        log.debug("Lock User");
+    }
+
+    private WebhookEvent verifyWebhookEvent(HttpServletRequest request) throws NodeProcessException {
+        try {
+            String jsonContent = request.getParameter("jsonContent").replaceAll("\\s+(?![1-9a-zA-Z])", "");
+            String signature = request.getHeader("X-SHA2-Signature");
+            String webhookToken = new String(config.webhookToken());
+
+            WebhookEventVerifier webhookEventVerifier = new WebhookEventVerifier(webhookToken);
+
+            return webhookEventVerifier.readPayload(jsonContent, signature);
+        } catch (OnfidoException e) {
+            throw new NodeProcessException(e);
+        }
+    }
 }

@@ -1,0 +1,20 @@
+{
+  "id": "<check-id>",
+  "created_at": "1970-01-01T00:00:00Z",
+  "status": "in_progress",
+  "redirect_uri": null,
+  "result": null,
+  "sandbox": false,
+  "tags": [],
+  "results_uri": "https://dashboard.onfido.com/checks/<check-id>",
+  "form_uri": null,
+  "paused": false,
+  "version": "3.0",
+  "report_ids": [
+    "<report-id-1>",
+    "<report-id-2>"
+  ],
+  "href": "/v3/checks/<check-id>",
+  "applicant_id": "<applicant-id>",
+  "applicant_provides_data": false
+}

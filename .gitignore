@@ -57,3 +57,6 @@ pom.xml.releaseBackup
 pom.xml.tag
 dependency-reduced-pom.xml
 *.iml
+
+# Project Specific
+resources/am/settings.xml
