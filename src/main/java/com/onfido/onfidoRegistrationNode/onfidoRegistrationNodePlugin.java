@@ -60,7 +60,7 @@ import java.util.Map;
  */
 public class onfidoRegistrationNodePlugin extends AbstractNodeAmPlugin {
 
-    static private String currentVersion = "1.0.2";
+    static private String currentVersion = "2.0.0";
 
     /**
      * Specify the Map of list of node classes that the plugin is providing. These will then be installed and

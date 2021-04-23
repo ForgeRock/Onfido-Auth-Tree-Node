@@ -23,7 +23,7 @@
     <artifactId>onfidoRegistrationNode</artifactId>
 
     <groupId>com.onfido</groupId>
-    <version>1.0.4</version>
+    <version>2.0.0</version>
     <name>OnFido Auth Tree Node</name>
     <description>OnFido Auth Tree Node</description>
 
