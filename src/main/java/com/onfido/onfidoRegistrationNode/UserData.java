@@ -68,7 +68,7 @@ public class UserData {
             case "last_name": return getLastName();
             case "middle_name": return getMiddleName();
             case "full_name": return getFullName();
-            case "date_of_birth": return getDateOfBirth().toString();
+            case "dob": return getDateOfBirth().toString();
             case "gender": return getGender();
             case "mrz_line1": return getMrzLine1();
             case "mrz_line2": return getMrzLine2();
