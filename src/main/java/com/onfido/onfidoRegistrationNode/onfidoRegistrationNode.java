@@ -130,6 +130,15 @@ public class onfidoRegistrationNode implements Node {
             }};
         }
 
+        @Attribute(order = 550)
+        default Boolean onfidoUseModal() {
+            return true;
+        }
+
+        @Attribute(order = 599)
+        default Boolean onfidoShowWelcome() {
+            return true;
+        }
 
         @Attribute(order = 600)
         default String onfidoWelcomeMessage() {
@@ -141,6 +150,14 @@ public class onfidoRegistrationNode implements Node {
             return "Thank you for using Onfido for Identity Verification";
         }
 
+        @Attribute(order = 750)
+        Set<String> onfidoDocumentTypes(); 
+
+        @Attribute(order = 760)
+        default String onfidoDocumentCountry(){
+            return "";
+        }
+
         @Attribute(order = 900)
         default String onfidoJSURL() {
             return "https://assets.onfido.com/web-sdk-releases/6.7.1/onfido.min.js";
@@ -150,8 +167,10 @@ public class onfidoRegistrationNode implements Node {
         default String onfidoCSSUrl() {
             return "https://assets.onfido.com/web-sdk-releases/6.7.1/style.css";
         }
-        
 
+        @Attribute(order = 1050)
+        Map<String, String> onfidoCustomUI();
+                
         @Attribute(order = 1100)
         default String onfidoCheckIdAttribute() {
             return "description";
