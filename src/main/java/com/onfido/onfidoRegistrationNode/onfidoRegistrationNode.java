@@ -233,7 +233,7 @@ public class onfidoRegistrationNode implements Node {
 
             return Action.goTo("true").build();
         } catch(Exception ex) {
-        	log.error(loggerPrefix + "Exception occurred: " + ex.getStackTrace());
+        	log.error(loggerPrefix + "Exception occurred: ", ex);
 			context.getStateFor(this).putShared(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
