@@ -86,10 +86,21 @@ Collects and sends the document and, optionally, biometrics to the Onfido Back e
 | ------------- |:-------------|
 | Live Token    | The Onfido Registration Node needs a Live Token Provided by Onfido. To get this Token please go to the Onfido Dashboard at https://onfido.com/dashboard/ and navigate to the Token tab. |
 | Just in Time Provisioning     | JIT Provisioning should be turned On for the RaaS Use Case. It should be turned Off for the Level of Assurance Use Case. It is used to initiate the creation of the Shared Object used by the Create Object Node, thus is only needed in Registration as a Service use cases.      |
+| Referrer for JWT | Boolean value; if true, will create JSON object to pass to the Dynamic Provisioning Account Node.  |
+| Onfido API URL | Regional base URL for performing Onfido API calls.   |
 | BioMetric Check | This is used to tell the Web SDK which type of check it should initiate: document-only, document-and-face, or document-and-video.      |
 | Attribute Mapping Configuration| This is used to map the attributes that come from the Onfido AutoFill endpoint to object attributes inside the ForgeRock platform. The key is the ForgeRock IDM attribute, while the value is the Onfido attribute.|
 |Onfido ApplicantID Attribute*| The IDM attribute that should be used to store the Onfido Applicant ID for matching up the Identity Verification Report when it comes in.
-|Messages| Messages on the Onfido user flow that can be customized|
+| Use Modal Window | Turns the SDK into a modal, which fades the background and puts the SDK into a contained box. The default value is false. |
+| Show Welcome Step | Disabling this option will skip the initial Welcome step |
+| Messages | Messages on the Onfido user flow that can be customized    |
+| Document Types | Optional. List of identity types accepted. Examples are national_identity_card, driving_licence, passport, residence_permit  |
+| Document Country | Optional. Predefine issuing country of accepted document. Use API country codes (ie CAN) |
+| Send Date of birth | Optional. Includes a date of birth from the shared state attributes to send with the application for data comparison |
+| Date of birth Attribute name | The attribute that contains the date of birth. |
+| Date of birth Format | The format of the Date of birth field (Default yyyy-MM-dd) - java.time.format.DateTimeFormatter |
+| customUI content | This is additional JSON content that will be injected into the customUI API Initialization options. (JSON Object) See https://documentation.onfido.com/sdk/web/#ui-customization |
+| Onfido Check ID Attribute | Attribute to store check ID returned by Onfido|
 
 *Note: In a production system, the Onfido ApplicantID Attribute should be a new string attribute added to the IDM schema for use by the Onfido Registration node. The screenshots in this README show this attribute as `title`, but any attribute name can be used.
 
