@@ -158,6 +158,21 @@ public class onfidoRegistrationNode implements Node {
             return "";
         }
 
+        @Attribute(order = 800)
+        default Boolean onfidoSendDob() {
+            return false;
+        }
+
+        @Attribute(order = 810)
+        default String onfidoDobAttribute(){
+            return "";
+        }
+
+        @Attribute(order = 815)
+        default String onfidoDobFormat(){
+            return "yyyy-MM-dd";
+        }
+
         @Attribute(order = 900)
         default String onfidoJSURL() {
             return "https://assets.onfido.com/web-sdk-releases/6.7.1/onfido.min.js";
@@ -253,7 +268,12 @@ public class onfidoRegistrationNode implements Node {
         if (userIdentity != null && userIdentity.isExists() && userIdentity.getAttribute("givenName") != null && userIdentity.getAttribute("sn") != null) {
             newApplicant = onfidoApi.createApplicant(userIdentity.getAttribute("givenName").toString(), userIdentity.getAttribute("sn").toString());
         } else if(ns.get("objectAttributes") != null && ns.get("objectAttributes").get("givenName") != null && ns.get("objectAttributes").get("sn") != null) {
-            newApplicant = onfidoApi.createApplicant(ns.get("objectAttributes").get("givenName").asString(), ns.get("objectAttributes").get("sn").asString());
+            if(config.onfidoSendDob() && ns.get("objectAttributes").get(config.onfidoDobAttribute()) != null) {
+                newApplicant = onfidoApi.createApplicant(ns.get("objectAttributes").get("givenName").asString(), ns.get("objectAttributes").get("sn").asString(), ns.get("objectAttributes").get(config.onfidoDobAttribute()).asString(), config.onfidoDobFormat());
+            } else {
+                newApplicant = onfidoApi.createApplicant(ns.get("objectAttributes").get("givenName").asString(), ns.get("objectAttributes").get("sn").asString());
+            }
+            
         } else {
             newApplicant = onfidoApi.createApplicant(DEFAULT_FIRST_NAME, DEFAULT_LAST_NAME);
         }
