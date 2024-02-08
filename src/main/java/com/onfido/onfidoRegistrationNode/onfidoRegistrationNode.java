@@ -130,6 +130,15 @@ public class onfidoRegistrationNode implements Node {
             }};
         }
 
+        @Attribute(order = 550)
+        default Boolean onfidoUseModal() {
+            return true;
+        }
+
+        @Attribute(order = 599)
+        default Boolean onfidoShowWelcome() {
+            return true;
+        }
 
         @Attribute(order = 600)
         default String onfidoWelcomeMessage() {
@@ -141,6 +150,29 @@ public class onfidoRegistrationNode implements Node {
             return "Thank you for using Onfido for Identity Verification";
         }
 
+        @Attribute(order = 750)
+        Set<String> onfidoDocumentTypes(); 
+
+        @Attribute(order = 760)
+        default String onfidoDocumentCountry(){
+            return "";
+        }
+
+        @Attribute(order = 800)
+        default Boolean onfidoSendDob() {
+            return false;
+        }
+
+        @Attribute(order = 810)
+        default String onfidoDobAttribute(){
+            return "";
+        }
+
+        @Attribute(order = 815)
+        default String onfidoDobFormat(){
+            return "yyyy-MM-dd";
+        }
+
         @Attribute(order = 900)
         default String onfidoJSURL() {
             return "https://assets.onfido.com/web-sdk-releases/6.7.1/onfido.min.js";
@@ -150,8 +182,10 @@ public class onfidoRegistrationNode implements Node {
         default String onfidoCSSUrl() {
             return "https://assets.onfido.com/web-sdk-releases/6.7.1/style.css";
         }
-        
 
+        @Attribute(order = 1050)
+        Map<String, String> onfidoCustomUI();
+                
         @Attribute(order = 1100)
         default String onfidoCheckIdAttribute() {
             return "description";
@@ -214,7 +248,7 @@ public class onfidoRegistrationNode implements Node {
 
             return Action.goTo("true").build();
         } catch(Exception ex) {
-        	log.error(loggerPrefix + "Exception occurred: " + ex.getStackTrace());
+        	log.error(loggerPrefix + "Exception occurred: ", ex);
 			context.getStateFor(this).putShared(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
@@ -234,7 +268,12 @@ public class onfidoRegistrationNode implements Node {
         if (userIdentity != null && userIdentity.isExists() && userIdentity.getAttribute("givenName") != null && userIdentity.getAttribute("sn") != null) {
             newApplicant = onfidoApi.createApplicant(userIdentity.getAttribute("givenName").toString(), userIdentity.getAttribute("sn").toString());
         } else if(ns.get("objectAttributes") != null && ns.get("objectAttributes").get("givenName") != null && ns.get("objectAttributes").get("sn") != null) {
-            newApplicant = onfidoApi.createApplicant(ns.get("objectAttributes").get("givenName").asString(), ns.get("objectAttributes").get("sn").asString());
+            if(config.onfidoSendDob() && ns.get("objectAttributes").get(config.onfidoDobAttribute()) != null) {
+                newApplicant = onfidoApi.createApplicant(ns.get("objectAttributes").get("givenName").asString(), ns.get("objectAttributes").get("sn").asString(), ns.get("objectAttributes").get(config.onfidoDobAttribute()).asString(), config.onfidoDobFormat());
+            } else {
+                newApplicant = onfidoApi.createApplicant(ns.get("objectAttributes").get("givenName").asString(), ns.get("objectAttributes").get("sn").asString());
+            }
+            
         } else {
             newApplicant = onfidoApi.createApplicant(DEFAULT_FIRST_NAME, DEFAULT_LAST_NAME);
         }
