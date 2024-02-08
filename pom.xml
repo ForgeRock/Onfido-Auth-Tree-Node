@@ -32,7 +32,7 @@
         <onfido.version>1.4.0</onfido.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <okhttp-version>4.9.0</okhttp-version>
-	      <forgerockDistMgmtReleasesUrl>https://maven.forgerock.org/artifactory/internal-releases</forgerockDistMgmtReleasesUrl>
+	      <forgerockDistMgmtReleasesUrl>https://maven.forgerock.org/repo/internal-releases</forgerockDistMgmtReleasesUrl>
     </properties>
 
     <distributionManagement>
@@ -267,7 +267,7 @@
             </snapshots>
             <id>forgerock-private-releases</id>
             <name>ForgeRock Private Release Repository</name>
-            <url>https://maven.forgerock.org/artifactory/private-releases</url>
+            <url>https://maven.forgerock.org/repo/private-releases</url>
         </repository>
         <repository>
             <snapshots>
