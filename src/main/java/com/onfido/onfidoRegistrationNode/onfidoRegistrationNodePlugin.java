@@ -60,7 +60,7 @@ import java.util.Map;
  */
 public class onfidoRegistrationNodePlugin extends AbstractNodeAmPlugin {
 
-    static private String currentVersion = "2.3.27";
+    static private String currentVersion = "2.3.28";
     static final String logAppender = "[Version: " + currentVersion + "][Marketplace] ";
 
     /**
