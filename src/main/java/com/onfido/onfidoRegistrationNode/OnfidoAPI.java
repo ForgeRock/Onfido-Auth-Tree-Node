@@ -1,8 +1,6 @@
 package com.onfido.onfidoRegistrationNode;
 
 import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,27 +43,12 @@ public class OnfidoAPI {
     }
 
 
-    // first and last names only
+
     public Applicant createApplicant(String first_name, String last_name) throws NodeProcessException {
 
         Applicant.Request applicantRequest = null;
         try {
             applicantRequest = Applicant.request().firstName(first_name).lastName(last_name);
-
-            return onfido.applicant.create(applicantRequest);
-        } catch (OnfidoException e) {
-            log.error(loggerPrefix + "Exception creating the applicant: {}", applicantRequest);
-            throw new NodeProcessException(e);
-        }
-    }
-
-    // first name, last names, and dob
-    public Applicant createApplicant(String first_name, String last_name, String dob, String dobFormat) throws NodeProcessException {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dobFormat);
-        LocalDate dob_date = LocalDate.parse(dob, formatter);
-        Applicant.Request applicantRequest = null;
-        try {
-            applicantRequest = Applicant.request().firstName(first_name).lastName(last_name).dob(dob_date);
 
             return onfido.applicant.create(applicantRequest);
         } catch (OnfidoException e) {

@@ -14,22 +14,21 @@ public class OnfidoWebSdkConfig {
     public OnfidoWebSdkConfig(onfidoRegistrationNode.Config config, String sdkToken) {
         this.config = config;
         this.sdkToken = sdkToken;
-        this.sdkConfig = initSdkConfig(this.config);
+        this.sdkConfig = initSdkConfig();
     }
 
     public JSONObject getSdkConfig() {
         return sdkConfig;
     }
 
-    private JSONObject initSdkConfig(onfidoRegistrationNode.Config config) {
+    private JSONObject initSdkConfig() {
         JSONObject sdkConfiguration = new JSONObject();
 
         try {
             String onModalRequestClose = "function() { onfido.setOptions({isModalOpen: false}); window.location.reload(false); }";
             String onComplete = "function(data) { onfido.setOptions({isModalOpen: false}); document.getElementById('loginButton_0').click(); }";
 
-            sdkConfiguration.put("useModal", config.onfidoUseModal());
-            sdkConfiguration.put("customUI", config.onfidoCustomUI());
+            sdkConfiguration.put("useModal", true);
             sdkConfiguration.put("isModalOpen", true);
 
             sdkConfiguration.put("onModalRequestClose", new OnfidoWebSdkConfig.JSONFunction(onModalRequestClose));
@@ -44,8 +43,9 @@ public class OnfidoWebSdkConfig {
         return sdkConfiguration;
     }
 
-    private JSONObject welcomeStepConfig() {
-        JSONObject step = new JSONObject();
+    private JSONObject initStepsConfig() {
+        JSONObject stepsConfig = new JSONObject();
+
         try {
             ArrayList<String> descriptions = new ArrayList<>();
             descriptions.add(config.onfidoWelcomeMessage());
@@ -55,50 +55,20 @@ public class OnfidoWebSdkConfig {
             options.put("title", config.onfidoWelcomeMessage());
             options.put("descriptions", descriptions);
             options.put("forceCrossDevice", false);
-            step.put("type", "welcome");
-            step.put("options", options);
+
+            stepsConfig.put("type", "welcome");
+            stepsConfig.put("options", options);
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return step;
-    }
 
-    private JSONObject documentStepsConfig() {
-        JSONObject step = new JSONObject();
-
-        try {
-            JSONObject options = new JSONObject();
-            JSONObject docTypes = new JSONObject();
-            if (config.onfidoDocumentCountry() != "") {
-                JSONObject country = new JSONObject();
-                country.put("country", config.onfidoDocumentCountry());
-                for (String docType : config.onfidoDocumentTypes()) {
-                    docTypes.put(docType, country);
-                }
-                options.put("documentTypes", docTypes);
-                step.put("options", options);
-            } else {
-                options.put("documentTypes", config.onfidoDocumentTypes());
-                step.put("options", options);
-            }
-            step.put("type", "document");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return step;
+        return stepsConfig;
     }
-    
 
     private ArrayList<Object> buildSteps() throws JSONException {
         ArrayList<Object> steps = new ArrayList<>();
-        if (config.onfidoShowWelcome()) {
-            steps.add(welcomeStepConfig());
-        }
-        if (config.onfidoDocumentTypes() != null) {
-            steps.add(documentStepsConfig());
-        } else {
-            steps.add("document");
-        }
+        steps.add(initStepsConfig());
+        steps.add("document");
 
         if (!config.biometricCheck().toString().equals("None")) {
             if (config.biometricCheck().toString().equals("Live")) {

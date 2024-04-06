@@ -109,12 +109,13 @@ public class onfidoCheckNode implements Node {
 
         	 String username = ns.get(USERNAME).asString();
              String checkId = "";
+             log.error(loggerPrefix + ns.get("checkId").asString());
              if (ns.get("checkId").asString() != null && !ns.get("checkId").asString().isEmpty()) {
-                log.debug(loggerPrefix + "checkId is present");
+                log.error("loggerPrefix + Shared state");
                 checkId=ns.get("checkId").asString();
-                log.debug(loggerPrefix + "checkId: " + checkId);
+                log.error(loggerPrefix + checkId);
              } else {
-                 log.debug(loggerPrefix + "username: "+ username);
+                 log.error(loggerPrefix + username);
                  Set<String> identifiers;
                  log.debug(loggerPrefix + "Grabbing user identifiers for " + config.onfidoCheckIdAttribute());
 
@@ -123,6 +124,7 @@ public class onfidoCheckNode implements Node {
                  
                  if (identifiers != null && !identifiers.isEmpty()) {
                      checkId = identifiers.iterator().next();
+                     log.error(checkId);
                      log.debug(loggerPrefix + "CheckID found: " + checkId);
                  }
              }
@@ -142,7 +144,7 @@ public class onfidoCheckNode implements Node {
 
             return Action.goTo("deny").build();
         } catch(Exception ex) {
-        	log.error(loggerPrefix + "Exception occurred: " + ex.getStackTrace());
+        	log.error(loggerPrefix + "Exception occurred: ", ex);
 			context.getStateFor(this).putShared(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
