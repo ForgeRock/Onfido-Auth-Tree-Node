@@ -63,16 +63,17 @@ public class UserData {
     private String getFieldValue(String onfidoKey) throws NodeProcessException {
         switch (onfidoKey) {
             case "document_number": return getDocumentNumber();
-            case "date_of_expiry": if (getDateOfExpiry()) {
-                return getDateOfExpiry().toString();
-            } else {
-                return null;
-            }
+            case "date_of_expiry": 
+				if (getDateOfExpiry() != null) {
+                	return getDateOfExpiry().toString();
+            	} else {
+                	return null;
+            	}
             case "first_name": return getFirstName();
             case "last_name": return getLastName();
             case "middle_name": return getMiddleName();
             case "full_name": return getFullName();
-            case "date_of_birth": if (getDateOfBirth()) {
+            case "date_of_birth": if (getDateOfBirth() != null) {
                 return getDateOfBirth().toString(); 
             } else {
                 return null;
