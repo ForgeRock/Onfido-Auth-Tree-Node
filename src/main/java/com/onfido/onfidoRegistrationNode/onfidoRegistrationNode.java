@@ -248,12 +248,10 @@ public class onfidoRegistrationNode implements Node {
 
             return Action.goTo("true").build();
         } catch(Exception ex) {
-        	log.error(loggerPrefix + "Exception occurred: ", ex);
-			context.getStateFor(this).putShared(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
-			StringWriter sw = new StringWriter();
-			PrintWriter pw = new PrintWriter(sw);
-			ex.printStackTrace(pw);
-			context.getStateFor(this).putShared(loggerPrefix + "StackTrack", new Date() + ": " + sw.toString());
+        	String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
+			log.error(loggerPrefix + "Exception occurred: ", ex);
+			context.getStateFor(this).putTransient(loggerPrefix + "Exception", ex.getMessage());
+			context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", stackTrace);
             return Action.goTo("error").build();
         }
     }
