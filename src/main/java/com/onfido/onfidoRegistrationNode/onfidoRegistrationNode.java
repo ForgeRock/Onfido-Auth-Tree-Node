@@ -25,14 +25,10 @@ import static org.forgerock.openam.auth.node.api.Action.send;
 import static org.forgerock.openam.auth.node.api.SharedStateConstants.REALM;
 import static org.forgerock.openam.auth.node.api.SharedStateConstants.USERNAME;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -248,12 +244,10 @@ public class onfidoRegistrationNode implements Node {
 
             return Action.goTo("true").build();
         } catch(Exception ex) {
-        	log.error(loggerPrefix + "Exception occurred: ", ex);
-			context.getStateFor(this).putShared(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
-			StringWriter sw = new StringWriter();
-			PrintWriter pw = new PrintWriter(sw);
-			ex.printStackTrace(pw);
-			context.getStateFor(this).putShared(loggerPrefix + "StackTrack", new Date() + ": " + sw.toString());
+        	String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
+			log.error(loggerPrefix + "Exception occurred: ", ex);
+			context.getStateFor(this).putTransient(loggerPrefix + "Exception", ex.getMessage());
+			context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", stackTrace);
             return Action.goTo("error").build();
         }
     }
