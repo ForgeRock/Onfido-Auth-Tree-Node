@@ -167,7 +167,6 @@
                 <version>3.8.1</version>
                 <configuration>
                     <release>11</release>
-                    <proc>full</proc>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
