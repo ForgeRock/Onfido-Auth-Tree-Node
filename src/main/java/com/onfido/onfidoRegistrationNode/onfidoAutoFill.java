@@ -5,7 +5,7 @@ import com.onfido.models.Address;
 import com.onfido.models.Applicant;
 import com.onfido.models.Document;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

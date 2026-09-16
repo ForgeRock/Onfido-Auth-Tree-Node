@@ -1,7 +1,7 @@
 package com.onfido.onfidoRegistrationNode;
 
 import com.onfido.models.Report;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
 
 import java.util.List;
