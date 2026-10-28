@@ -139,7 +139,7 @@ public class onfidoCheckNode implements Node {
 
             return Action.goTo("deny").build();
         } catch(Exception ex) {
-        	String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
+        	String stackTrace = org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(ex);
 			log.error(loggerPrefix + "Exception occurred: ", ex);
 			context.getStateFor(this).putTransient(loggerPrefix + "Exception", ex.getMessage());
 			context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", stackTrace);
