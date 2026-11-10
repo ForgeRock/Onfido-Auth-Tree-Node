@@ -44,7 +44,7 @@ Once built and dropped into ForgeRock, 2 nodes will be available.
 
 Collects and sends the document and, optionally, biometrics to the Onfido Back end. This node also uses Onfido's Autofill endpoint to get the User Attributes off the document for possible provisioning later.
 
-**Onfido Webhook Node**
+**Onfido Check Node**
 
 Retrieves the Identity Verification Report from Onfido and update the users profile accordingly.
 
@@ -144,36 +144,6 @@ Gets information of an Onfido check to determine if it completed, and the status
 | Onfido Check ID Attribute |The IDM attribute that should be used to store the Onfido Applicant ID for matching up the Identity Verification Report when it comes in.|
 
 
-## **Onfido Webhook Tree**
-
-![ScreenShot](./screenshots/flow_webhook.png)
-
-The Onfido Webhook Node/Tree is used to receive the report from Onfido. This is available in the on prem release.
-
-The tree also finds and updates the user inside of ForgeRock that corresponds to the Report. If you are familiar with ForgeRock, normally  Trees are used to log users in and provide SSOTokens. But, when called with specific Query Params, you can send information through a tree without returning an SSO Token. This is very important, and  the configuration steps below must be followed to make sure that an SSO Token is not created for this flow.
-
-### Node Configuration
-
-![ScreenShot](./screenshots/config_webhook.png)
-
-| Configuration Name        | Explanation           |
-| ------------- |:-------------|
-| Live Token     | The Onfido Registration Node needs A Live Token Provided by Onfido. To get this Token please go to the Onfido Dashboard at https://onfido.com/dashboard/ and navigate to the Token tab. |
-| Onfido Webhook Token    | Used to check the HMAC signature of the calls coming in from Onfido     |
-| Lockout User | If a user fails verification, should the user be locked out? If LockOut is turned On, then not only is the user account deactivated, but all current sessions by that user will be deactivated immediately as well.      |
-|Onfido Pass/Fail Flag Attribute| Used to store if  Identity Verification was passed or failed.|
-|Onfido ApplicantID Attribute| LDAP Attribute used to store Onfido ApplicantID for matching up the Identity Verification Report when it comes in.
-|Onfido Breakdowns| Allows you to customize which of the Onfido Report Breakdowns are evaluated|
-
-**Note:**
-
-There is a small disparity between the Onfido Registration Node and the Onfido Webhook Node.
-
-* The Onfido Applicant ID Attribute in the Registration Node is an IDM Attribute
-* The Onfido Applicant ID Attribute in the Webhook Node is the related LDAP Attribute
-
-You will need to ensure that your LDAP User Attributes in DS include the attribute used to store the results from the Onfido Webhook Node.
- 
 ### Onfido Dashboard configuration
 
 ![ScreenShot](./screenshots/onfidoDash1.png)
